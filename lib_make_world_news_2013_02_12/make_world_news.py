@@ -53,6 +53,8 @@ def make_world_news_thread(thr_lock, url_iter,
             o_scheme, o_netloc, o_path, o_query, o_fragment = \
                     url_parse.urlsplit(data.o_url)
             
+            o_netloc = o_netloc.replace('.', '_')
+            
             if o_path and not o_path.startswith('/'):
                 o_path = '/{}'.format(o_path)
             
@@ -63,8 +65,8 @@ def make_world_news_thread(thr_lock, url_iter,
             if o_scheme and o_scheme != 'http':
                 query_kwargs['scheme'] = o_scheme
             
-            if o_netloc.startswith('www.'):
-                query_kwargs['wnetloc'] = o_netloc[len('www.'):]
+            if o_netloc.startswith('www_'):
+                query_kwargs['wnetloc'] = o_netloc[len('www_'):]
             elif o_netloc:
                 query_kwargs['netloc'] = o_netloc
             
