@@ -137,7 +137,7 @@ class MainWindow:
         self._transform_button.config(state=tkinter.NORMAL)
         self._paste_o_urls_button.config(state=tkinter.NORMAL)
         
-        self._text.delete(1.0, tkinter.END)
+        self._text.delete('1.0', tkinter.END)
     
     def _transform_cmd(self):
         if self._busy_state or self._result_state:
@@ -175,7 +175,7 @@ class MainWindow:
         self._busy_state_id = object()
         self._set_status('Working')
         
-        self._text.delete(1.0, tkinter.END)
+        self._text.delete('1.0', tkinter.END)
         
         self._site_url_entry.config(state=tkinter.DISABLED)
         self._news_secret_key_entry.config(state=tkinter.DISABLED)
@@ -240,7 +240,7 @@ class MainWindow:
             return
         
         content = self._root.clipboard_get()
-        self._text.delete(1.0, tkinter.END)
+        self._text.delete('1.0', tkinter.END)
         self._text.insert(tkinter.END, content)
     
     def _copy_result_cmd(self):
@@ -248,6 +248,6 @@ class MainWindow:
             self._root.bell()
             return
         
-        content = self._text.get(1.0, tkinter.END).rstrip()
+        content = self._text.get('1.0', tkinter.END).rstrip()
         self._root.clipboard_clear()
         self._root.clipboard_append(content)
