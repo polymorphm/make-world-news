@@ -18,7 +18,7 @@
 
 assert str is not bytes
 
-import threading, base64
+import threading, base64, heapq
 import tkinter
 from tkinter import ttk, scrolledtext
 from . import tk_mt
@@ -186,36 +186,45 @@ class MainWindow:
         self._copy_result_button.config(state=tkinter.DISABLED)
         self._close_button.config(state=tkinter.DISABLED)
         
-        def on_result(busy_state_id, data):
-            self._tk_mt.push(lambda: self._on_transform_result(busy_state_id, data))
+        busy_state_id = self._busy_state_id
+        out_heap = []
         
-        def on_done(busy_state_id):
-            self._tk_mt.push(lambda: self._on_transform_done(busy_state_id))
+        def on_result(data):
+            self._tk_mt.push(lambda: self._on_transform_result(busy_state_id, out_heap, data))
+        
+        def on_done():
+            self._tk_mt.push(lambda: self._on_transform_done(busy_state_id, out_heap))
         
         make_world_news.make_world_news(
                 o_urls_list,
                 site_url,
                 news_secret_key,
-                on_result=lambda data, _busy_state_id=self._busy_state_id:
-                        on_result(_busy_state_id, data),
-                on_done=lambda _busy_state_id=self._busy_state_id:
-                        on_done(_busy_state_id),
+                on_result=on_result,
+                on_done=on_done,
                 )
     
-    def _on_transform_result(self, busy_state_id, data):
+    def _on_transform_result(self, busy_state_id, out_heap, data):
         if not self._busy_state or busy_state_id != self._busy_state_id:
             return
         
         if data.error is not None:
             return
         
-        self._text.config(state=tkinter.NORMAL)
-        self._text.insert(tkinter.END, '{}\n'.format(data.result))
-        self._text.config(state=tkinter.DISABLED)
+        heapq.heappush(out_heap, (data.url_id, data))
     
-    def _on_transform_done(self, busy_state_id):
+    def _on_transform_done(self, busy_state_id, out_heap):
         if not self._busy_state or busy_state_id != self._busy_state_id:
             return
+        
+        while True:
+            try:
+                url_id, data = heapq.heappop(out_heap)
+            except IndexError:
+                break
+            
+            self._text.config(state=tkinter.NORMAL)
+            self._text.insert(tkinter.END, '{}\n'.format(data.result))
+            self._text.config(state=tkinter.DISABLED)
         
         self._busy_state = False
         self._busy_state_id = object()
