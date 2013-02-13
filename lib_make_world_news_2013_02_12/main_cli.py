@@ -17,7 +17,7 @@
 
 assert str is not bytes
 
-import threading, argparse, configparser, base64
+import threading, argparse, configparser, base64, heapq
 from . import fix_url, read_list, make_world_news
 
 class UserError(Exception):
@@ -27,7 +27,7 @@ def on_begin(ui_lock, data):
     with ui_lock:
         print('[{!r}] begin: {!r}'.format(data.url_id, data.o_url))
 
-def on_result(ui_lock, out_fd, data):
+def on_result(ui_lock, out_heap, data):
     with ui_lock:
         if data.error is not None:
             print('[{!r}] error: {!r}: {!r}: {!r}'.format(
@@ -35,13 +35,23 @@ def on_result(ui_lock, out_fd, data):
                     data.error[0], data.error[1]))
             return
         
-        out_fd.write('{}\n'.format(data.result))
-        out_fd.flush()
+        heapq.heappush(out_heap, (data.url_id, data))
         
         print('[{!r}] pass: {!r}'.format(data.url_id, data.o_url))
 
-def on_done(ui_lock, done_event):
+def on_done(ui_lock, out_heap, out_fd, done_event):
     with ui_lock:
+        print('writing...')
+        
+        while True:
+            try:
+                url_id, data = heapq.heappop(out_heap)
+            except IndexError:
+                break
+            
+            out_fd.write('{}\n'.format(data.result))
+            out_fd.flush()
+        
         print('done!')
         done_event.set()
 
@@ -88,6 +98,7 @@ def main():
     ui_lock = threading.RLock()
     
     o_url_list = read_list.map_read_list(fix_url.fix_url, args.o_urls)
+    out_heap = []
     
     with open(args.out, 'w', encoding='utf-8', newline='\n') as out_fd:
         done_event = threading.Event()
@@ -96,7 +107,7 @@ def main():
                 site_url,
                 news_secret_key,
                 on_begin=lambda data: on_begin(ui_lock, data),
-                on_result=lambda data: on_result(ui_lock, out_fd, data),
-                on_done=lambda: on_done(ui_lock, done_event),
+                on_result=lambda data: on_result(ui_lock, out_heap, data),
+                on_done=lambda: on_done(ui_lock, out_heap, out_fd, done_event),
                 )
         done_event.wait()
