@@ -144,9 +144,9 @@ class MainWindow:
             self._root.bell()
             return
         
-        site_url = self._site_url_entry.get()
-        news_secret_key_b64 = self._news_secret_key_entry.get()
-        o_urls_text = self._text.get('1.0', tkinter.END).rstrip()
+        site_url = self._site_url_entry.get().strip()
+        news_secret_key_b64 = self._news_secret_key_entry.get().strip()
+        o_urls_text = self._text.get('1.0', tkinter.END).strip()
         
         site_url = fix_url.fix_url(site_url)
         
