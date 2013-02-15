@@ -67,7 +67,7 @@ def make_world_news_thread(thr_lock, url_iter,
                                        }).encode(),
                                 {'Content-Type': 'application/json;charset=utf-8'},
                                 ),
-                        timeout=5.0,
+                        timeout=20.0,
                         )
                 if resp.getcode() != 200:
                     raise IOError('resp.getcode() != 200')
