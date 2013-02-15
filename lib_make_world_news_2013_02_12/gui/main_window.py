@@ -61,6 +61,13 @@ class MainWindow:
                 text='News Secret Key:')
         self._news_secret_key_entry = ttk.Entry(master=self._top_frame)
         
+        self._use_short_var = tkinter.BooleanVar(value=True)
+        self._use_short = ttk.Checkbutton(
+                master=self._top_frame,
+                variable=self._use_short_var,
+                text='Use Short Links',
+                )
+        
         self._text = scrolledtext.ScrolledText(master=self._center_frame)
         self._text.propagate(False)
         
@@ -91,6 +98,7 @@ class MainWindow:
         self._site_url_entry.grid(row=0, column=1, padx=10, pady=10)
         self._news_secret_key_label.grid(row=1, column=0, padx=10, pady=10)
         self._news_secret_key_entry.grid(row=1, column=1, padx=10, pady=10)
+        self._use_short.grid(row=2, column=0, padx=10, pady=10)
         
         self._text.pack(fill=tkinter.BOTH, expand=True)
         
@@ -133,6 +141,7 @@ class MainWindow:
         self._copy_result_button.config(state=tkinter.DISABLED)
         self._site_url_entry.config(state=tkinter.NORMAL)
         self._news_secret_key_entry.config(state=tkinter.NORMAL)
+        self._use_short.config(state=tkinter.NORMAL)
         self._text.config(state=tkinter.NORMAL)
         self._transform_button.config(state=tkinter.NORMAL)
         self._paste_o_urls_button.config(state=tkinter.NORMAL)
@@ -146,6 +155,7 @@ class MainWindow:
         
         site_url = self._site_url_entry.get().strip()
         news_secret_key_b64 = self._news_secret_key_entry.get().strip()
+        use_short = self._use_short_var.get()
         o_urls_text = self._text.get('1.0', tkinter.END).strip()
         
         site_url = fix_url.fix_url(site_url)
@@ -179,6 +189,7 @@ class MainWindow:
         
         self._site_url_entry.config(state=tkinter.DISABLED)
         self._news_secret_key_entry.config(state=tkinter.DISABLED)
+        self._use_short.config(state=tkinter.DISABLED)
         self._text.config(state=tkinter.DISABLED)
         self._new_data_button.config(state=tkinter.DISABLED)
         self._transform_button.config(state=tkinter.DISABLED)
@@ -199,6 +210,7 @@ class MainWindow:
                 o_urls_list,
                 site_url,
                 news_secret_key,
+                use_short=use_short,
                 on_result=on_result,
                 on_done=on_done,
                 )
