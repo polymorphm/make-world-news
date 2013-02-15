@@ -17,8 +17,8 @@
 
 assert str is not bytes
 
-import sys, threading, hashlib, hmac, base64
-from urllib import parse as url_parse
+import sys, threading, hashlib, hmac, base64, json
+from urllib import parse as url_parse, request
 
 DEFAULT_CONCURRENCY = 20
 
@@ -35,8 +35,11 @@ def get_news_key(original_news_url, news_secret_key):
     return news_key[:6]
 
 def make_world_news_thread(thr_lock, url_iter,
-        site_url, news_secret_key,
+        site_url, news_secret_key, use_short=None,
         on_begin=None, on_result=None):
+    if use_short is None:
+        use_short = False
+    
     while True:
         data = Data()
         
@@ -50,38 +53,60 @@ def make_world_news_thread(thr_lock, url_iter,
             on_begin(data)
         
         try:
-            o_scheme, o_netloc, o_path, o_query, o_fragment = \
-                    url_parse.urlsplit(data.o_url)
+            news_key = get_news_key(data.o_url, news_secret_key)
+            news_key_b64 = base64.b64encode(news_key).decode('utf-8', 'replace')
             
-            o_netloc = o_netloc.replace('.', '_')
-            
-            if o_path and not o_path.startswith('/'):
-                o_path = '/{}'.format(o_path)
-            
-            query_kwargs = {
-                    'key': base64.b64encode(get_news_key(data.o_url, news_secret_key)),
-                    }
-            
-            if o_scheme and o_scheme != 'http':
-                query_kwargs['scheme'] = o_scheme
-            
-            if o_netloc.startswith('www_'):
-                query_kwargs['wnetloc'] = o_netloc[len('www_'):]
-            elif o_netloc:
-                query_kwargs['netloc'] = o_netloc
-            
-            if o_query:
-                query_kwargs['query'] = o_query
-            
-            if o_fragment:
-                query_kwargs['fragment'] = o_fragment
-            
-            query = url_parse.urlencode(query_kwargs)
-            news_url_path = 'news{}{}'.format(
-                    o_path,
-                    '?{}'.format(query) if query else '',
-                    )
-            news_url = url_parse.urljoin(site_url, news_url_path)
+            if use_short:
+                opener = request.build_opener()
+                resp = opener.open(
+                        request.Request(
+                                url_parse.urljoin(site_url, 'api/sh/new'),
+                                json.dumps({
+                                        'original_news_url': data.o_url,
+                                        'news_key': news_key_b64,
+                                       }).encode(),
+                                {'Content-Type': 'application/json;charset=utf-8'},
+                                ),
+                        timeout=5.0,
+                        )
+                if resp.getcode() != 200:
+                    raise IOError('resp.getcode() != 200')
+                
+                sh_data = json.loads(resp.read(10000000).decode('utf-8', 'replace'))
+                news_url = sh_data.get('micro_news_url')
+            else:
+                o_scheme, o_netloc, o_path, o_query, o_fragment = \
+                        url_parse.urlsplit(data.o_url)
+                
+                o_netloc = o_netloc.replace('.', '_')
+                
+                if o_path and not o_path.startswith('/'):
+                    o_path = '/{}'.format(o_path)
+                
+                query_kwargs = {
+                        'key': news_key_b64,
+                        }
+                
+                if o_scheme and o_scheme != 'http':
+                    query_kwargs['scheme'] = o_scheme
+                
+                if o_netloc.startswith('www_'):
+                    query_kwargs['wnetloc'] = o_netloc[len('www_'):]
+                elif o_netloc:
+                    query_kwargs['netloc'] = o_netloc
+                
+                if o_query:
+                    query_kwargs['query'] = o_query
+                
+                if o_fragment:
+                    query_kwargs['fragment'] = o_fragment
+                
+                query = url_parse.urlencode(query_kwargs)
+                news_url_path = 'news{}{}'.format(
+                        o_path,
+                        '?{}'.format(query) if query else '',
+                        )
+                news_url = url_parse.urljoin(site_url, news_url_path)
             
             data.result = news_url
         except Exception:
@@ -93,7 +118,7 @@ def make_world_news_thread(thr_lock, url_iter,
             on_result(data)
 
 def make_world_news(o_url_list,
-        site_url=None, news_secret_key=None,
+        site_url, news_secret_key, use_short=None,
         conc=None, on_begin=None, on_result=None, on_done=None):
     if conc is None:
         conc = DEFAULT_CONCURRENCY
@@ -108,6 +133,7 @@ def make_world_news(o_url_list,
                             o_url_iter,
                             site_url,
                             news_secret_key,
+                            use_short=use_short,
                             on_begin=on_begin,
                             on_result=on_result,
                             ),
