@@ -61,6 +61,11 @@ def main():
                     'for web-sites of class ``world-news``.',
             )
     parser.add_argument(
+            '--use-short',
+            action='store_true',
+            help='use short links',
+            )
+    parser.add_argument(
             'cfg',
             metavar='CONFIG-PATH',
             help='path to configuration file',
@@ -106,6 +111,7 @@ def main():
                 o_url_list,
                 site_url,
                 news_secret_key,
+                use_short=args.use_short,
                 on_begin=lambda data: on_begin(ui_lock, data),
                 on_result=lambda data: on_result(ui_lock, out_heap, data),
                 on_done=lambda: on_done(ui_lock, out_heap, out_fd, done_event),
