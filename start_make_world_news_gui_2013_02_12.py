@@ -19,7 +19,7 @@
 assert str is not bytes
 
 # pre-import for cx_Freeze
-#import re, ..., ... ... ...
+import re
 
 from lib_make_world_news_2013_02_12.gui.main_gui import main
 
