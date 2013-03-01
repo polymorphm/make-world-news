@@ -94,17 +94,17 @@ class MainWindow:
         self._statusbar = ttk.Label(master=self._bottom_frame,
                 textvariable=self._status_var)
         
-        self._site_url_label.grid(row=0, column=0, padx=10, pady=10)
-        self._site_url_entry.grid(row=0, column=1, padx=10, pady=10)
-        self._news_secret_key_label.grid(row=1, column=0, padx=10, pady=10)
-        self._news_secret_key_entry.grid(row=1, column=1, padx=10, pady=10)
-        self._use_short.grid(row=2, column=0, padx=10, pady=10)
+        self._site_url_label.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
+        self._site_url_entry.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
+        self._news_secret_key_label.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
+        self._news_secret_key_entry.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
+        self._use_short.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
         
         self._text.pack(fill=tkinter.BOTH, expand=True)
         
         self._new_data_button.pack(side=tkinter.LEFT, padx=10, pady=10)
         self._transform_button.pack(side=tkinter.LEFT, padx=10, pady=10)
-        self._statusbar.pack(side=tkinter.LEFT, padx=10, pady=10)
+        self._statusbar.pack(side=tkinter.LEFT, expand=True, padx=10, pady=10)
         
         self._close_button.pack(side=tkinter.RIGHT, padx=10, pady=10)
         self._copy_result_button.pack(side=tkinter.RIGHT, padx=10, pady=10)
