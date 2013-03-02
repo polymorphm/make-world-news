@@ -34,7 +34,7 @@ def get_news_key(original_news_url, news_secret_key):
     
     return news_key[:6]
 
-def make_world_news_thread(thr_lock, url_iter,
+def make_world_news_thread(thr_lock, in_msg_iter,
         site_url, news_secret_key, use_short=None,
         on_begin=None, on_result=None):
     if use_short is None:
@@ -45,7 +45,7 @@ def make_world_news_thread(thr_lock, url_iter,
         
         with thr_lock:
             try:
-                data.url_id, data.o_url = next(url_iter)
+                data.msg_id, data.in_msg = next(in_msg_iter)
             except StopIteration:
                 return
         
@@ -53,62 +53,82 @@ def make_world_news_thread(thr_lock, url_iter,
             on_begin(data)
         
         try:
-            news_key = get_news_key(data.o_url, news_secret_key)
-            news_key_b64 = base64.b64encode(news_key).decode('utf-8', 'replace')
+            result_msg = []
             
-            if use_short:
-                opener = request.build_opener()
-                resp = opener.open(
-                        request.Request(
-                                url_parse.urljoin(site_url, 'api/sh/new'),
-                                json.dumps({
-                                        'original_news_url': data.o_url,
-                                        'news_key': news_key_b64,
-                                       }).encode(),
-                                {'Content-Type': 'application/json;charset=utf-8'},
-                                ),
-                        timeout=20.0,
-                        )
-                if resp.getcode() != 200:
-                    raise IOError('resp.getcode() != 200')
+            for in_msg_cell in data.in_msg.split('|'):
+                result_cell = []
                 
-                sh_data = json.loads(resp.read(10000000).decode('utf-8', 'replace'))
-                news_url = sh_data.get('micro_news_url')
-            else:
-                o_scheme, o_netloc, o_path, o_query, o_fragment = \
-                        url_parse.urlsplit(data.o_url)
+                for in_msg_word in data.in_msg.split(' '):
+                    if not in_msg_word.startswith('https://') and \
+                            not in_msg_word.startswith('http://') or \
+                            in_msg_word.startswith(url_parse.urljoin(site_url, 'sh/')) or \
+                            in_msg_word.startswith(url_parse.urljoin(site_url, 'news/')):
+                        result_cell.append(in_msg_word)
+                        
+                        continue
+                    
+                    in_msg_url = in_msg_word
+                    
+                    news_key = get_news_key(in_msg_url, news_secret_key)
+                    news_key_b64 = base64.b64encode(news_key).decode('utf-8', 'replace')
+                    
+                    if use_short:
+                        opener = request.build_opener()
+                        resp = opener.open(
+                                request.Request(
+                                        url_parse.urljoin(site_url, 'api/sh/new'),
+                                        json.dumps({
+                                                'original_news_url': in_msg_url,
+                                                'news_key': news_key_b64,
+                                               }).encode(),
+                                        {'Content-Type': 'application/json;charset=utf-8'},
+                                        ),
+                                timeout=20.0,
+                                )
+                        if resp.getcode() != 200:
+                            raise IOError('resp.getcode() != 200')
+                        
+                        sh_data = json.loads(resp.read(10000000).decode('utf-8', 'replace'))
+                        news_url = sh_data.get('micro_news_url')
+                    else:
+                        o_scheme, o_netloc, o_path, o_query, o_fragment = \
+                                url_parse.urlsplit(in_msg_url)
+                        
+                        o_netloc = o_netloc.replace('.', '_')
+                        
+                        if o_path and not o_path.startswith('/'):
+                            o_path = '/{}'.format(o_path)
+                        
+                        query_kwargs = {
+                                'key': news_key_b64,
+                                }
+                        
+                        if o_scheme and o_scheme != 'http':
+                            query_kwargs['scheme'] = o_scheme
+                        
+                        if o_netloc.startswith('www_'):
+                            query_kwargs['wnetloc'] = o_netloc[len('www_'):]
+                        elif o_netloc:
+                            query_kwargs['netloc'] = o_netloc
+                        
+                        if o_query:
+                            query_kwargs['query'] = o_query
+                        
+                        if o_fragment:
+                            query_kwargs['fragment'] = o_fragment
+                        
+                        query = url_parse.urlencode(query_kwargs)
+                        news_url_path = 'news{}{}'.format(
+                                o_path,
+                                '?{}'.format(query) if query else '',
+                                )
+                        news_url = url_parse.urljoin(site_url, news_url_path)
+                    
+                    result_cell.append(news_url)
                 
-                o_netloc = o_netloc.replace('.', '_')
-                
-                if o_path and not o_path.startswith('/'):
-                    o_path = '/{}'.format(o_path)
-                
-                query_kwargs = {
-                        'key': news_key_b64,
-                        }
-                
-                if o_scheme and o_scheme != 'http':
-                    query_kwargs['scheme'] = o_scheme
-                
-                if o_netloc.startswith('www_'):
-                    query_kwargs['wnetloc'] = o_netloc[len('www_'):]
-                elif o_netloc:
-                    query_kwargs['netloc'] = o_netloc
-                
-                if o_query:
-                    query_kwargs['query'] = o_query
-                
-                if o_fragment:
-                    query_kwargs['fragment'] = o_fragment
-                
-                query = url_parse.urlencode(query_kwargs)
-                news_url_path = 'news{}{}'.format(
-                        o_path,
-                        '?{}'.format(query) if query else '',
-                        )
-                news_url = url_parse.urljoin(site_url, news_url_path)
+                result_msg.append(' '.join(result_cell))
             
-            data.result = news_url
+            data.result = '|'.join(result_msg)
         except Exception:
             data.error = sys.exc_info()
         else:
@@ -117,20 +137,20 @@ def make_world_news_thread(thr_lock, url_iter,
         if on_result is not None:
             on_result(data)
 
-def make_world_news(o_url_list,
+def make_world_news(in_msg_list,
         site_url, news_secret_key, use_short=None,
         conc=None, on_begin=None, on_result=None, on_done=None):
     if conc is None:
         conc = DEFAULT_CONCURRENCY
     
     thr_lock = threading.RLock()
-    o_url_iter = enumerate(o_url_list)
+    in_msg_iter = enumerate(in_msg_list)
     
     thread_list = tuple(
             threading.Thread(
                     target=lambda: make_world_news_thread(
                             thr_lock,
-                            o_url_iter,
+                            in_msg_iter,
                             site_url,
                             news_secret_key,
                             use_short=use_short,

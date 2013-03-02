@@ -25,19 +25,19 @@ class UserError(Exception):
 
 def on_begin(ui_lock, data):
     with ui_lock:
-        print('[{!r}] begin: {!r}'.format(data.url_id, data.o_url))
+        print('[{!r}] begin: {!r}'.format(data.msg_id, data.in_msg))
 
 def on_result(ui_lock, out_heap, data):
     with ui_lock:
         if data.error is not None:
             print('[{!r}] error: {!r}: {!r}: {!r}'.format(
-                    data.url_id, data.o_url,
+                    data.msg_id, data.in_msg,
                     data.error[0], data.error[1]))
             return
         
-        heapq.heappush(out_heap, (data.url_id, data))
+        heapq.heappush(out_heap, (data.msg_id, data))
         
-        print('[{!r}] pass: {!r}'.format(data.url_id, data.o_url))
+        print('[{!r}] pass: {!r}'.format(data.msg_id, data.in_msg))
 
 def on_done(ui_lock, out_heap, out_fd, done_event):
     with ui_lock:
@@ -45,7 +45,7 @@ def on_done(ui_lock, out_heap, out_fd, done_event):
         
         while True:
             try:
-                url_id, data = heapq.heappop(out_heap)
+                msg_id, data = heapq.heappop(out_heap)
             except IndexError:
                 break
             
@@ -71,21 +71,21 @@ def main():
             help='path to configuration file',
             )
     parser.add_argument(
-            'o_urls',
-            metavar='ORIG-URLS-INPUT-PATH',
-            help='path to input original news url list file',
+            'in_msgs',
+            metavar='INPUT-MESSAGES-PATH',
+            help='path to input news messages (with original urls) list file',
             )
     parser.add_argument(
             'out',
-            metavar='OUTPUT-PATH',
-            help='path to output result news url list file',
+            metavar='OUTPUT-MESSAGES-PATH',
+            help='path to output result messages (with urls) list file',
             )
     args = parser.parse_args()
     
     if args.cfg is None:
         raise UserError('args.cfg is None')
-    if args.o_urls is None:
-        raise UserError('args.o_urls is None')
+    if args.in_msgs is None:
+        raise UserError('args.in_msgs is None')
     if args.out is None:
         raise UserError('args.out is None')
     
@@ -102,13 +102,13 @@ def main():
     
     ui_lock = threading.RLock()
     
-    o_url_list = read_list.map_read_list(fix_url.fix_url, args.o_urls)
+    in_msg_list = read_list.read_list(args.in_msgs)
     out_heap = []
     
     with open(args.out, 'w', encoding='utf-8', newline='\n') as out_fd:
         done_event = threading.Event()
         make_world_news.make_world_news(
-                o_url_list,
+                in_msg_list,
                 site_url,
                 news_secret_key,
                 use_short=args.use_short,
