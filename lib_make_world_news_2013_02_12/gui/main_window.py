@@ -41,8 +41,8 @@ class MainWindow:
         self._program_menu = tkinter.Menu(master=self._menubar)
         self._program_menu.add_command(label='New Data', command=self._new_data_cmd)
         self._program_menu.add_command(label='Transform', command=self._transform_cmd)
-        self._program_menu.add_command(label='Paste Original URLs',
-                command=self._paste_o_urls_cmd)
+        self._program_menu.add_command(label='Paste Input Messages',
+                command=self._paste_in_msgs_cmd)
         self._program_menu.add_command(label='Copy Result',
                 command=self._copy_result_cmd)
         self._program_menu.add_separator()
@@ -79,9 +79,9 @@ class MainWindow:
                 text='Transform',
                 command=self._transform_cmd)
         
-        self._paste_o_urls_button = ttk.Button(master=self._bottom_frame,
-                text='Paste Original URLs',
-                command=self._paste_o_urls_cmd)
+        self._paste_in_msgs_button = ttk.Button(master=self._bottom_frame,
+                text='Paste Input Messages',
+                command=self._paste_in_msgs_cmd)
         self._copy_result_button = ttk.Button(master=self._bottom_frame,
                 text='Copy Result',
                 command=self._copy_result_cmd)
@@ -108,7 +108,7 @@ class MainWindow:
         
         self._close_button.pack(side=tkinter.RIGHT, padx=10, pady=10)
         self._copy_result_button.pack(side=tkinter.RIGHT, padx=10, pady=10)
-        self._paste_o_urls_button.pack(side=tkinter.RIGHT, padx=10, pady=10)
+        self._paste_in_msgs_button.pack(side=tkinter.RIGHT, padx=10, pady=10)
         
         self._top_frame.pack(side=tkinter.TOP, fill=tkinter.X)
         self._center_frame.pack(fill=tkinter.BOTH, expand=True)
@@ -144,7 +144,7 @@ class MainWindow:
         self._use_short.config(state=tkinter.NORMAL)
         self._text.config(state=tkinter.NORMAL)
         self._transform_button.config(state=tkinter.NORMAL)
-        self._paste_o_urls_button.config(state=tkinter.NORMAL)
+        self._paste_in_msgs_button.config(state=tkinter.NORMAL)
         
         self._text.delete('1.0', tkinter.END)
     
@@ -156,7 +156,7 @@ class MainWindow:
         site_url = self._site_url_entry.get().strip()
         news_secret_key_b64 = self._news_secret_key_entry.get().strip()
         use_short = self._use_short_var.get()
-        o_urls_text = self._text.get('1.0', tkinter.END).strip()
+        in_msg_text = self._text.get('1.0', tkinter.END).strip()
         
         site_url = fix_url.fix_url(site_url)
         
@@ -165,18 +165,15 @@ class MainWindow:
         except ValueError:
             news_secret_key = None
         
-        o_urls_list = tuple(map(
-                fix_url.fix_url,
-                filter(
-                        None,
-                        map(
-                                lambda s: s.strip(),
-                                o_urls_text.split('\n'),
-                                ),
-                        )
+        in_msg_list = tuple(filter(
+                None,
+                map(
+                        lambda s: s.strip(),
+                        in_msg_text.split('\n'),
+                        ),
                 ))
         
-        if not o_urls_list or not site_url or not news_secret_key:
+        if not in_msg_list or not site_url or not news_secret_key:
             self._root.bell()
             return
         
@@ -193,7 +190,7 @@ class MainWindow:
         self._text.config(state=tkinter.DISABLED)
         self._new_data_button.config(state=tkinter.DISABLED)
         self._transform_button.config(state=tkinter.DISABLED)
-        self._paste_o_urls_button.config(state=tkinter.DISABLED)
+        self._paste_in_msgs_button.config(state=tkinter.DISABLED)
         self._copy_result_button.config(state=tkinter.DISABLED)
         self._close_button.config(state=tkinter.DISABLED)
         
@@ -207,7 +204,7 @@ class MainWindow:
             self._tk_mt.push(lambda: self._on_transform_done(busy_state_id, out_heap))
         
         make_world_news.make_world_news(
-                o_urls_list,
+                in_msg_list,
                 site_url,
                 news_secret_key,
                 use_short=use_short,
@@ -222,7 +219,7 @@ class MainWindow:
         if data.error is not None:
             return
         
-        heapq.heappush(out_heap, (data.url_id, data))
+        heapq.heappush(out_heap, (data.msg_id, data))
     
     def _on_transform_done(self, busy_state_id, out_heap):
         if not self._busy_state or busy_state_id != self._busy_state_id:
@@ -230,7 +227,7 @@ class MainWindow:
         
         while True:
             try:
-                url_id, data = heapq.heappop(out_heap)
+                msg_id, data = heapq.heappop(out_heap)
             except IndexError:
                 break
             
@@ -246,7 +243,7 @@ class MainWindow:
         self._copy_result_button.config(state=tkinter.NORMAL)
         self._close_button.config(state=tkinter.NORMAL)
     
-    def _paste_o_urls_cmd(self):
+    def _paste_in_msgs_cmd(self):
         if self._busy_state or self._result_state:
             self._root.bell()
             return
