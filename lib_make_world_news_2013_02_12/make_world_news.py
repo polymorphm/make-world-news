@@ -58,7 +58,7 @@ def make_world_news_thread(thr_lock, in_msg_iter,
             for in_msg_cell in data.in_msg.split('|'):
                 result_cell = []
                 
-                for in_msg_word in data.in_msg.split(' '):
+                for in_msg_word in in_msg_cell.split(' '):
                     if not in_msg_word.startswith('https://') and \
                             not in_msg_word.startswith('http://') or \
                             in_msg_word.startswith(url_parse.urljoin(site_url, 'sh/')) or \
