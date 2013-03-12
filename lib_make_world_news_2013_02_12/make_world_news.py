@@ -35,7 +35,7 @@ def get_news_key(original_news_url, news_secret_key):
     return news_key[:6]
 
 def make_world_news_thread(thr_lock, in_msg_iter,
-        site_url, news_secret_key, use_short=None,
+        site_url, news_secret_key, use_short=None, other_word_func_factory=None,
         on_begin=None, on_result=None):
     if use_short is None:
         use_short = False
@@ -53,6 +53,8 @@ def make_world_news_thread(thr_lock, in_msg_iter,
             on_begin(data)
         
         try:
+            if other_word_func_factory is not None:
+                other_word_func = other_word_func_factory()
             result_msg = []
             
             for in_msg_cell in data.in_msg.split('|'):
@@ -63,6 +65,9 @@ def make_world_news_thread(thr_lock, in_msg_iter,
                             not in_msg_word.startswith('http://') or \
                             in_msg_word.startswith(url_parse.urljoin(site_url, 'sh/')) or \
                             in_msg_word.startswith(url_parse.urljoin(site_url, 'news/')):
+                        if other_word_func_factory is not None:
+                            in_msg_word = other_word_func(in_msg_word)
+                        
                         result_cell.append(in_msg_word)
                         
                         continue
@@ -138,7 +143,7 @@ def make_world_news_thread(thr_lock, in_msg_iter,
             on_result(data)
 
 def make_world_news(in_msg_list,
-        site_url, news_secret_key, use_short=None,
+        site_url, news_secret_key, use_short=None, other_word_func_factory=None,
         conc=None, on_begin=None, on_result=None, on_done=None):
     if conc is None:
         conc = DEFAULT_CONCURRENCY
@@ -154,6 +159,7 @@ def make_world_news(in_msg_list,
                             site_url,
                             news_secret_key,
                             use_short=use_short,
+                            other_word_func_factory=other_word_func_factory,
                             on_begin=on_begin,
                             on_result=on_result,
                             ),
