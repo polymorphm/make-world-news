@@ -56,23 +56,28 @@ class MainWindow:
         self._center_frame = ttk.Frame(master=self._root)
         self._bottom_frame = ttk.Frame(master=self._root)
         
-        self._site_url_label = ttk.Label(master=self._top_frame,
+        self._site_url_frame = ttk.Frame(master=self._top_frame)
+        self._site_url_label = ttk.Label(master=self._site_url_frame,
                 text='Site URL:')
-        self._site_url_entry = ttk.Entry(master=self._top_frame)
-        self._news_secret_key_label = ttk.Label(master=self._top_frame,
-                text='News Secret Key:')
-        self._news_secret_key_entry = ttk.Entry(master=self._top_frame)
+        self._site_url_entry = ttk.Entry(master=self._site_url_frame)
         
+        self._news_secret_key_frame = ttk.Frame(master=self._top_frame)
+        self._news_secret_key_label = ttk.Label(master=self._news_secret_key_frame,
+                text='News Secret Key:')
+        self._news_secret_key_entry = ttk.Entry(master=self._news_secret_key_frame)
+        
+        self._options_frame = ttk.Frame(master=self._top_frame)
         self._use_short_var = tkinter.BooleanVar(value=True)
-        self._use_short = ttk.Checkbutton(
-                master=self._top_frame,
+        self._use_short_button = ttk.Checkbutton(
+                master=self._options_frame,
                 variable=self._use_short_var,
                 text='Use Short Links',
                 )
         
-        self._hashtag_list_label = ttk.Label(master=self._top_frame,
+        self._hashtag_list_frame = ttk.Frame(master=self._top_frame)
+        self._hashtag_list_label = ttk.Label(master=self._hashtag_list_frame,
                 text='Hashtag Word List:')
-        self._hashtag_list_entry = ttk.Entry(master=self._top_frame)
+        self._hashtag_list_entry = ttk.Entry(master=self._hashtag_list_frame)
         
         self._text = scrolledtext.ScrolledText(master=self._center_frame)
         self._text.propagate(False)
@@ -100,13 +105,17 @@ class MainWindow:
         self._statusbar = ttk.Label(master=self._bottom_frame,
                 textvariable=self._status_var)
         
-        self._site_url_label.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
-        self._site_url_entry.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
-        self._news_secret_key_label.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
-        self._news_secret_key_entry.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
-        self._use_short.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
-        self._hashtag_list_label.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
-        self._hashtag_list_entry.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
+        self._site_url_label.pack(side=tkinter.LEFT,padx=10, pady=10)
+        self._site_url_entry.pack(fill=tkinter.X, padx=10, pady=10)
+        self._site_url_frame.pack(side=tkinter.TOP, fill=tkinter.X)
+        self._news_secret_key_label.pack(side=tkinter.LEFT, padx=10, pady=10)
+        self._news_secret_key_entry.pack(fill=tkinter.X, padx=10, pady=10)
+        self._news_secret_key_frame.pack(side=tkinter.TOP, fill=tkinter.X)
+        self._use_short_button.pack(side=tkinter.LEFT, padx=10, pady=10)
+        self._options_frame.pack(side=tkinter.TOP, fill=tkinter.X)
+        self._hashtag_list_label.pack(side=tkinter.LEFT, padx=10, pady=10)
+        self._hashtag_list_entry.pack(fill=tkinter.X, padx=10, pady=10)
+        self._hashtag_list_frame.pack(side=tkinter.TOP, fill=tkinter.X)
         
         self._text.pack(fill=tkinter.BOTH, expand=True)
         
@@ -149,7 +158,7 @@ class MainWindow:
         self._copy_result_button.config(state=tkinter.DISABLED)
         self._site_url_entry.config(state=tkinter.NORMAL)
         self._news_secret_key_entry.config(state=tkinter.NORMAL)
-        self._use_short.config(state=tkinter.NORMAL)
+        self._use_short_button.config(state=tkinter.NORMAL)
         self._hashtag_list_entry.config(state=tkinter.NORMAL)
         self._text.config(state=tkinter.NORMAL)
         self._transform_button.config(state=tkinter.NORMAL)
@@ -203,7 +212,7 @@ class MainWindow:
         
         self._site_url_entry.config(state=tkinter.DISABLED)
         self._news_secret_key_entry.config(state=tkinter.DISABLED)
-        self._use_short.config(state=tkinter.DISABLED)
+        self._use_short_button.config(state=tkinter.DISABLED)
         self._hashtag_list_entry.config(state=tkinter.DISABLED)
         self._text.config(state=tkinter.DISABLED)
         self._new_data_button.config(state=tkinter.DISABLED)
