@@ -7,7 +7,7 @@ for web-sites of class ``world-news``.
 Status
 ------
 
-Development branch.
+Beta branch.
 
 Compiling for Microsoft Windows
 -------------------------------
