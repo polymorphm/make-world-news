@@ -20,9 +20,9 @@ assert str is not bytes
 
 import threading, base64, heapq
 import tkinter
-from tkinter import ttk, scrolledtext
-from . import tk_mt
-from .. import fix_url, make_world_news
+from tkinter import ttk, scrolledtext, filedialog
+from . import tk_mt, tk_async
+from .. import fix_url, read_list, hashtag_replacer, make_world_news
 
 DEFAULT_MAIN_WINDOW_WIDTH = 700
 DEFAULT_MAIN_WINDOW_HEIGHT = 500
@@ -41,6 +41,8 @@ class MainWindow:
         self._program_menu = tkinter.Menu(master=self._menubar)
         self._program_menu.add_command(label='New Data', command=self._new_data_cmd)
         self._program_menu.add_command(label='Transform', command=self._transform_cmd)
+        self._program_menu.add_command(label='Load Hashtag Word List from File',
+                command=self._load_hashtag_list_cmd)
         self._program_menu.add_command(label='Paste Input Messages',
                 command=self._paste_in_msgs_cmd)
         self._program_menu.add_command(label='Copy Result',
@@ -67,6 +69,10 @@ class MainWindow:
                 variable=self._use_short_var,
                 text='Use Short Links',
                 )
+        
+        self._hashtag_list_label = ttk.Label(master=self._top_frame,
+                text='Hashtag Word List:')
+        self._hashtag_list_entry = ttk.Entry(master=self._top_frame)
         
         self._text = scrolledtext.ScrolledText(master=self._center_frame)
         self._text.propagate(False)
@@ -99,6 +105,8 @@ class MainWindow:
         self._news_secret_key_label.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
         self._news_secret_key_entry.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
         self._use_short.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
+        self._hashtag_list_label.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
+        self._hashtag_list_entry.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=10)
         
         self._text.pack(fill=tkinter.BOTH, expand=True)
         
@@ -142,6 +150,7 @@ class MainWindow:
         self._site_url_entry.config(state=tkinter.NORMAL)
         self._news_secret_key_entry.config(state=tkinter.NORMAL)
         self._use_short.config(state=tkinter.NORMAL)
+        self._hashtag_list_entry.config(state=tkinter.NORMAL)
         self._text.config(state=tkinter.NORMAL)
         self._transform_button.config(state=tkinter.NORMAL)
         self._paste_in_msgs_button.config(state=tkinter.NORMAL)
@@ -156,6 +165,7 @@ class MainWindow:
         site_url = self._site_url_entry.get().strip()
         news_secret_key_b64 = self._news_secret_key_entry.get().strip()
         use_short = self._use_short_var.get()
+        hashtag_list_str = self._hashtag_list_entry.get().strip()
         in_msg_text = self._text.get('1.0', tkinter.END).strip()
         
         site_url = fix_url.fix_url(site_url)
@@ -164,6 +174,13 @@ class MainWindow:
             news_secret_key = base64.b64decode(news_secret_key_b64.encode())
         except ValueError:
             news_secret_key = None
+        
+        if hashtag_list_str:
+            other_word_func_factory = hashtag_replacer.create_word_func_factory(
+                    hashtag_list_str.split(),
+                    )
+        else:
+            other_word_func_factory = None
         
         in_msg_list = tuple(filter(
                 None,
@@ -187,6 +204,7 @@ class MainWindow:
         self._site_url_entry.config(state=tkinter.DISABLED)
         self._news_secret_key_entry.config(state=tkinter.DISABLED)
         self._use_short.config(state=tkinter.DISABLED)
+        self._hashtag_list_entry.config(state=tkinter.DISABLED)
         self._text.config(state=tkinter.DISABLED)
         self._new_data_button.config(state=tkinter.DISABLED)
         self._transform_button.config(state=tkinter.DISABLED)
@@ -208,6 +226,7 @@ class MainWindow:
                 site_url,
                 news_secret_key,
                 use_short=use_short,
+                other_word_func_factory=other_word_func_factory,
                 on_result=on_result,
                 callback=on_done,
                 )
@@ -245,6 +264,36 @@ class MainWindow:
         self._new_data_button.config(state=tkinter.NORMAL)
         self._copy_result_button.config(state=tkinter.NORMAL)
         self._close_button.config(state=tkinter.NORMAL)
+    
+    def _load_hashtag_list_result(self, err, busy_state_id, result):
+        if self._busy_state or busy_state_id != self._busy_state_id or self._result_state:
+            return
+        
+        if err or not result:
+            return
+        
+        hashtag_list_path = str(result)
+        try:
+            hashtag_list = read_list.read_list(hashtag_list_path, read_words=True)
+            hashtag_list_str = ' '.join(hashtag_list)
+        except Exception:
+            self._root.bell()
+            return
+        
+        self._hashtag_list_entry.delete(0, tkinter.END)
+        self._hashtag_list_entry.insert(0, hashtag_list_str)
+    
+    def _load_hashtag_list_cmd(self):
+        if self._busy_state or self._result_state:
+            self._root.bell()
+            return
+        
+        tk_async.tk_async(
+                self._root,
+                lambda: filedialog.askopenfilename(parent=self._root),
+                self._busy_state_id,
+                callback=self._load_hashtag_list_result,
+                )
     
     def _paste_in_msgs_cmd(self):
         if self._busy_state or self._result_state:
