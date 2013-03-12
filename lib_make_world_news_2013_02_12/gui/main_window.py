@@ -197,11 +197,11 @@ class MainWindow:
         busy_state_id = self._busy_state_id
         out_heap = []
         
-        def on_result(data):
-            self._tk_mt.push(lambda: self._on_transform_result(busy_state_id, out_heap, data))
+        def on_result(err, data):
+            self._tk_mt.push(lambda: self._on_transform_result(err, busy_state_id, out_heap, data))
         
-        def on_done():
-            self._tk_mt.push(lambda: self._on_transform_done(busy_state_id, out_heap))
+        def on_done(err):
+            self._tk_mt.push(lambda: self._on_transform_done(err, busy_state_id, out_heap))
         
         make_world_news.make_world_news(
                 in_msg_list,
@@ -209,20 +209,23 @@ class MainWindow:
                 news_secret_key,
                 use_short=use_short,
                 on_result=on_result,
-                on_done=on_done,
+                callback=on_done,
                 )
     
-    def _on_transform_result(self, busy_state_id, out_heap, data):
+    def _on_transform_result(self, err, busy_state_id, out_heap, data):
         if not self._busy_state or busy_state_id != self._busy_state_id:
             return
         
-        if data.error is not None:
+        if err is not None:
             return
         
         heapq.heappush(out_heap, (data.msg_id, data))
     
-    def _on_transform_done(self, busy_state_id, out_heap):
+    def _on_transform_done(self, err, busy_state_id, out_heap):
         if not self._busy_state or busy_state_id != self._busy_state_id:
+            return
+        
+        if err is not None:
             return
         
         while True:
