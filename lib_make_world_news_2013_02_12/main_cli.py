@@ -23,37 +23,47 @@ from . import fix_url, read_list, make_world_news
 class UserError(Exception):
     pass
 
-def on_begin(ui_lock, data):
+def on_begin(err, ui_lock, data):
     with ui_lock:
+        if err is not None:
+            print('error state')
+            return
+        
         print('[{!r}] begin: {!r}'.format(data.msg_id, data.in_msg))
 
-def on_result(ui_lock, out_heap, data):
+def on_result(err, ui_lock, out_heap, data):
     with ui_lock:
-        if data.error is not None:
-            print('[{!r}] error: {!r}: {!r}: {!r}'.format(
+        if err is not None:
+            print('[{!r}] error: {!r}: {!r}: {}'.format(
                     data.msg_id, data.in_msg,
-                    data.error[0], data.error[1]))
+                    err[0], err[1]))
             return
         
         heapq.heappush(out_heap, (data.msg_id, data))
         
         print('[{!r}] pass: {!r}'.format(data.msg_id, data.in_msg))
 
-def on_done(ui_lock, out_heap, out_fd, done_event):
+def on_done(err, ui_lock, out_heap, out_fd, done_event):
     with ui_lock:
-        print('writing...')
-        
-        while True:
-            try:
-                msg_id, data = heapq.heappop(out_heap)
-            except IndexError:
-                break
+        try:
+            if err is not None:
+                print('error state')
+                return
             
-            out_fd.write('{}\n'.format(data.result))
-            out_fd.flush()
-        
-        print('done!')
-        done_event.set()
+            print('writing...')
+            
+            while True:
+                try:
+                    msg_id, data = heapq.heappop(out_heap)
+                except IndexError:
+                    break
+                
+                out_fd.write('{}\n'.format(data.result))
+                out_fd.flush()
+            
+            print('done!')
+        finally:
+            done_event.set()
 
 def main():
     parser = argparse.ArgumentParser(
@@ -112,8 +122,8 @@ def main():
                 site_url,
                 news_secret_key,
                 use_short=args.use_short,
-                on_begin=lambda data: on_begin(ui_lock, data),
-                on_result=lambda data: on_result(ui_lock, out_heap, data),
-                on_done=lambda: on_done(ui_lock, out_heap, out_fd, done_event),
+                on_begin=lambda err, data: on_begin(err, ui_lock, data),
+                on_result=lambda err, data: on_result(err, ui_lock, out_heap, data),
+                callback=lambda err: on_done(err, ui_lock, out_heap, out_fd, done_event),
                 )
         done_event.wait()

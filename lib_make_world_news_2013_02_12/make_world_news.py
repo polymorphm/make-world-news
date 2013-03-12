@@ -43,14 +43,20 @@ def make_world_news_thread(thr_lock, in_msg_iter,
     while True:
         data = Data()
         
-        with thr_lock:
-            try:
-                data.msg_id, data.in_msg = next(in_msg_iter)
-            except StopIteration:
-                return
-        
-        if on_begin is not None:
-            on_begin(data)
+        try:
+            with thr_lock:
+                try:
+                    data.msg_id, data.in_msg = next(in_msg_iter)
+                except StopIteration:
+                    return
+        except Exception:
+            if on_begin is not None:
+                on_begin(sys.exc_info(), data)
+            
+            continue
+        else:
+            if on_begin is not None:
+                on_begin(None, data)
         
         try:
             if other_word_func_factory is not None:
@@ -135,16 +141,17 @@ def make_world_news_thread(thr_lock, in_msg_iter,
             
             data.result = '|'.join(result_msg)
         except Exception:
-            data.error = sys.exc_info()
+            if on_result is not None:
+                on_result(sys.exc_info(), data)
+            
+            continue
         else:
-            data.error = None
-        
-        if on_result is not None:
-            on_result(data)
+            if on_result is not None:
+                on_result(None, data)
 
 def make_world_news(in_msg_list,
         site_url, news_secret_key, use_short=None, other_word_func_factory=None,
-        conc=None, on_begin=None, on_result=None, on_done=None):
+        conc=None, on_begin=None, on_result=None, callback=None):
     if conc is None:
         conc = DEFAULT_CONCURRENCY
     
@@ -174,7 +181,7 @@ def make_world_news(in_msg_list,
         for thread in thread_list:
             thread.join()
         
-        if on_done is not None:
-            on_done()
+        if callback is not None:
+            callback(None)
     
     threading.Thread(target=in_thread).start()
