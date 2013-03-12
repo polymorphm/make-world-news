@@ -17,8 +17,8 @@
 
 assert str is not bytes
 
-import threading, argparse, configparser, base64, heapq
-from . import fix_url, read_list, make_world_news
+import threading, argparse, configparser, os.path, base64, heapq
+from . import fix_url, read_list, hashtag_replacer, make_world_news
 
 class UserError(Exception):
     pass
@@ -105,10 +105,21 @@ def main():
         cfg.read_file(cfg_fd)
     
     site_url = cfg.get('core', 'site_url')
+    site_url = fix_url.fix_url(site_url)
+    
     news_secret_key_b64 = cfg.get('core', 'news_secret_key')
     news_secret_key = base64.b64decode(news_secret_key_b64.encode())
     
-    site_url = fix_url.fix_url(site_url)
+    if cfg.has_option('core', 'hashtag_list'):
+        hashtag_list_path = os.path.join(
+                os.path.dirname(args.cfg),
+                cfg.get('core', 'hashtag_list'),
+                )
+        other_word_func_factory = hashtag_replacer.create_word_func_factory(
+                read_list.read_list(hashtag_list_path, read_words=True),
+                )
+    else:
+        other_word_func_factory = None
     
     ui_lock = threading.RLock()
     
@@ -122,6 +133,7 @@ def main():
                 site_url,
                 news_secret_key,
                 use_short=args.use_short,
+                other_word_func_factory=other_word_func_factory,
                 on_begin=lambda err, data: on_begin(err, ui_lock, data),
                 on_result=lambda err, data: on_result(err, ui_lock, out_heap, data),
                 callback=lambda err: on_done(err, ui_lock, out_heap, out_fd, done_event),

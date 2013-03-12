@@ -17,13 +17,20 @@
 
 assert str is not bytes
 
-def read_list(path):
+def read_list(path, read_words=None):
+    if read_words is None:
+        read_words = False
+    
     with open(path, encoding='utf-8', errors='replace') as fd:
         for line in filter(None, map(lambda s: s.strip(), fd)):
-            # TODO: use ``yield from ...`` for Python 3.3+
+            if read_words:
+                for word in line.split():
+                    # TODO: use ``yield from ...`` for Python 3.3+
+                    yield word
+            
             yield line
 
-def map_read_list(map_func, path):
-    for line in filter(None, map(map_func, read_list(path))):
+def map_read_list(map_func, *args, **kwargs):
+    for line in filter(None, map(map_func, read_list(*args, **kwargs))):
         # TODO: use ``yield from ...`` for Python 3.3+
         yield line
