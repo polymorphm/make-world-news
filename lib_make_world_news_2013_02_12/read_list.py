@@ -27,8 +27,8 @@ def read_list(path, read_words=None):
                 for word in line.split():
                     # TODO: use ``yield from ...`` for Python 3.3+
                     yield word
-            
-            yield line
+            else:
+                yield line
 
 def map_read_list(map_func, *args, **kwargs):
     for line in filter(None, map(map_func, read_list(*args, **kwargs))):
