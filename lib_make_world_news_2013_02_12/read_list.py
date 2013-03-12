@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+assert str is not bytes
+
 def read_list(path):
     with open(path, encoding='utf-8', errors='replace') as fd:
         for line in filter(None, map(lambda s: s.strip(), fd)):
