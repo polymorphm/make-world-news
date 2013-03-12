@@ -45,6 +45,11 @@ class HashtagReplacer:
         def replace_func(matchobj):
             word_lower = matchobj.group('word').lower()
             
+            if matchobj.group('pre_word').endswith('#'):
+                self._used.add(word_lower)
+                
+                return matchobj.group()
+            
             if word_lower in self._hashtag_set and \
                     word_lower not in self._used:
                 self._used.add(word_lower)
